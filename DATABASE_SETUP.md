@@ -1,32 +1,32 @@
-# Guia de Configuração do Banco de Dados
+# Database Setup Guide
 
-Este guia ajudará você a configurar o banco de dados MySQL para a aplicação de web scraping de notícias de investimentos.
+This guide will help you configure the MySQL database for the investment news web scraping application.
 
-## Pré-requisitos
+## Prerequisites
 
-1. Servidor MySQL instalado e em execução
-2. Dependências Python instaladas: `pip install -r requirements.txt`
+1. MySQL server installed and running
+2. Python dependencies installed: `pip install -r requirements.txt`
 
-## Configuração do Banco de Dados
+## Database Configuration
 
-### 1. Criar Usuário do Banco de Dados (Opcional mas Recomendado)
+### 1. Create a Database User (Optional but Recommended)
 
 ```sql
-CREATE USER 'news_user'@'localhost' IDENTIFIED BY 'sua_senha_segura';
+CREATE USER 'news_user'@'localhost' IDENTIFIED BY 'your_secure_password';
 GRANT ALL PRIVILEGES ON investment_news.* TO 'news_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-### 2. Configuração do Banco de Dados
+### 2. Database Settings
 
-A aplicação usa valores de configuração fixos do banco de dados. Se você precisar modificar essas configurações, edite o dicionário `DB_CONFIG` em `utils/database.py`:
+The application uses fixed database configuration values. If you need to modify these settings, edit the `DB_CONFIG` dictionary in `utils/database.py`:
 
 ```python
 DB_CONFIG = {
     'host': 'localhost',
     'port': 3306,
     'user': 'root',
-    'password': 'root',  # Altere isso para sua senha root do MySQL
+    'password': 'root',  # Change this to your MySQL root password
     'database': 'investment_news',
     'charset': 'utf8mb4',
     'collation': 'utf8mb4_unicode_ci',
@@ -34,106 +34,106 @@ DB_CONFIG = {
 }
 ```
 
-**Importante**: Atualize o campo `password` para corresponder à sua senha root do MySQL ou crie um usuário dedicado conforme mostrado na etapa 1.
+**Important**: Update the `password` field to match your MySQL root password, or create a dedicated user as shown in step 1.
 
-### 3. Executar a Aplicação
+### 3. Run the Application
 
-A aplicação irá automaticamente:
-- Conectar ao MySQL
-- Criar o banco de dados `investment_news` se ele não existir
-- Criar todas as tabelas necessárias com o esquema apropriado
-- Inicializar a conexão com o banco de dados
+The application will automatically:
+- Connect to MySQL
+- Create the `investment_news` database if it does not exist
+- Create all required tables with the proper schema
+- Initialize the database connection
 
 ```bash
 python app.py BUY_&_HOLD
 ```
 
-## Esquema do Banco de Dados
+## Database Schema
 
-A aplicação cria três tabelas principais:
+The application creates three main tables:
 
-### 1. `tickers` - Símbolos de ações e informações da empresa
-- `id`: Chave primária
-- `simbolo`: Símbolo da ação (ex: PETR4, VALE3, AAPL)
-- `nome_empresa`: Nome da empresa
-- `setor`: Setor da empresa
-- `mercado`: Tipo de mercado (B3, NYSE, NASDAQ, OUTROS)
-- `ativo`: Status ativo
-- `data_criacao`: Timestamp de criação
+### 1. `tickers` - Stock symbols and company information
+- `id`: Primary key
+- `simbolo`: Stock symbol (e.g., PETR4, VALE3, AAPL)
+- `nome_empresa`: Company name
+- `setor`: Company sector
+- `mercado`: Market type (B3, NYSE, NASDAQ, OTHERS)
+- `ativo`: Active status
+- `data_criacao`: Creation timestamp
 
-### 2. `noticias` - Artigos de notícias
-- `id`: Chave primária
-- `ticker_id`: Chave estrangeira para a tabela tickers
-- `url`: URL única da notícia
-- `data_publicacao`: Data de publicação
-- `autor`: Autor do artigo
-- `tipo_fonte`: Tipo de fonte (EXAME, INFO_MONEY)
-- `categoria`: Categoria da notícia
-- `sentimento`: Análise de sentimento (POSITIVO, NEUTRO, NEGATIVO)
-- `relevancia`: Pontuação de relevância (0.00 a 1.00)
-- `data_criacao`: Timestamp de criação
-- `data_atualizacao`: Timestamp da última atualização
+### 2. `noticias` - News articles
+- `id`: Primary key
+- `ticker_id`: Foreign key to the `tickers` table
+- `url`: Unique news URL
+- `data_publicacao`: Publication date
+- `autor`: Author
+- `tipo_fonte`: Source type (EXAME, INFO_MONEY)
+- `categoria`: News category
+- `sentimento`: Sentiment analysis (POSITIVE, NEUTRAL, NEGATIVE)
+- `relevancia`: Relevance score (0.00 to 1.00)
+- `data_criacao`: Creation timestamp
+- `data_atualizacao`: Last update timestamp
 
-### 3. `processamento_texto` - Dados de processamento de texto
-- `id`: Chave primária
-- `noticia_id`: Chave estrangeira para a tabela noticias
-- `tipo_conteudo`: Tipo de conteúdo (TITULO, MANCHETE, CORPO)
-- `texto_bruto`: Conteúdo de texto bruto (com índice FULLTEXT)
-- `tokens_normalizados`: Tokens normalizados (com índice FULLTEXT)
-- `tokens_stemming`: Tokens com stemming (LONGTEXT com índice FULLTEXT)
-- `tokens_lemma`: Tokens lematizados (LONGTEXT com índice FULLTEXT)
-- `outros_dados`: Metadados adicionais (JSON)
-- `data_criacao`: Timestamp de criação
-- `data_atualizacao`: Timestamp da última atualização
+### 3. `processamento_texto` - Text processing data
+- `id`: Primary key
+- `noticia_id`: Foreign key to the `noticias` table
+- `tipo_conteudo`: Content type (TITLE, HEADLINE, BODY)
+- `texto_bruto`: Raw text content (with FULLTEXT index)
+- `tokens_normalizados`: Normalized tokens (with FULLTEXT index)
+- `tokens_stemming`: Stemmed tokens (LONGTEXT with FULLTEXT index)
+- `tokens_lemma`: Lemmatized tokens (LONGTEXT with FULLTEXT index)
+- `outros_dados`: Additional metadata (JSON)
+- `data_criacao`: Creation timestamp
+- `data_atualizacao`: Last update timestamp
 
-## Solução de Problemas
+## Troubleshooting
 
-### Problemas de Conexão
-- Verifique se o servidor MySQL está em execução
-- Verifique as credenciais do banco de dados
-- Certifique-se de que o usuário tem as permissões adequadas
-- Verifique as configurações de firewall se conectando remotamente
+### Connection Issues
+- Verify that the MySQL server is running
+- Verify the database credentials
+- Ensure the user has proper permissions
+- Check firewall settings if connecting remotely
 
-### Problemas de Criação de Tabelas
-- Certifique-se de que o usuário do banco de dados tem privilégios CREATE
-- Verifique se existem tabelas com nomes conflitantes
-- Verifique a compatibilidade da versão MySQL (8.0+ recomendado)
+### Table Creation Issues
+- Ensure the database user has `CREATE` privileges
+- Check whether conflicting table names already exist
+- Verify MySQL version compatibility (8.0+ recommended)
 
-### Problemas de Salvamento de Dados
-- Verifique URLs duplicadas (elas devem ser únicas)
-- Verifique as restrições de chave estrangeira
-- Verifique o formato dos dados JSON para campos de processamento de texto
+### Data Save Issues
+- Check for duplicate URLs (they must be unique)
+- Check foreign key constraints
+- Verify JSON data format for text processing fields
 
-## Testando a Conexão com o Banco de Dados
+## Testing the Database Connection
 
-### Usando Python
-Você pode testar a conexão com o banco de dados executando:
+### Using Python
+You can test the database connection by running:
 
 ```python
 from src.financial_analysis.persistance.database import initialize_database
 
 if initialize_database():
-    print("Conexão com o banco de dados bem-sucedida!")
+    print("Database connection successful!")
 else:
-    print("Falha na conexão com o banco de dados!")
+    print("Database connection failed!")
 ```
 
-### Usando Linha de Comando
+### Using Command Line
 
-#### Windows (PowerShell/Prompt de Comando)
+#### Windows (PowerShell/Command Prompt)
 ```cmd
 mysql -u root -p -h localhost
-# Digite a senha quando solicitado
+# Enter password when prompted
 ```
 
 #### Linux/macOS
 ```bash
 mysql -u root -p -h localhost
-# Digite a senha quando solicitado
+# Enter password when prompted
 ```
 
-### Verificar Criação do Banco de Dados
-Uma vez conectado ao MySQL, você pode verificar se o banco de dados foi criado:
+### Verify Database Creation
+Once connected to MySQL, you can verify the database was created:
 
 ```sql
 SHOW DATABASES;
@@ -141,4 +141,4 @@ USE investment_news;
 SHOW TABLES;
 ```
 
-Você deve ver o banco de dados `investment_news` com três tabelas: `tickers`, `noticias`, e `processamento_texto`.
+You should see the `investment_news` database with three tables: `tickers`, `noticias`, and `processamento_texto`.

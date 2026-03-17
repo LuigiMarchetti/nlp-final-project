@@ -1,12 +1,51 @@
-# Documentação da Solução de Agentes em PLN
+# NLP Agents Solution for Fundamental Analysis
 
-Este documento descreve a arquitetura e funcionamento da solução avançada de Processamento de Linguagem Natural (PLN) desenvolvida para análise fundamentalista de investimentos.
+## Overview
 
-| Critério | Descrição                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| :--- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Qual o objetivo geral do agente / RAG / solução avançada em PLN?** | O objetivo é automatizar a **análise fundamentalista** de empresas listadas na B3, focando na estratégia de longo prazo ("Buy & Hold"). O sistema visa identificar **quebras de tese de investimento** e resumir eventos chave, fornecendo três perspectivas distintas para auxiliar na tomada de decisão: uma **Otimista** (Bullish), uma **Pessimista** (Bearish) e uma **Neutra** (Juiz).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Quais as entradas do sistema? Qual parte da base de dados ele irá utilizar?** | **Entradas:** Ticker da ação (ex: `PETR4`), horizonte de tempo (ex: `12` meses) e idioma de saída (Português/Inglês).<br><br>**Base de Dados:** O sistema utiliza um banco MySQL (`investment_news`).<br><br>**Dados Utilizados:** O sistema recupera e consolida o **texto bruto** armazenado na tabela `processamento_texto`, cruzando com a tabela `noticias` para filtrar os artigos relevantes pelo `ticker_id` e pela `data_publicacao` dentro da janela de tempo especificada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Qual o fluxo “agêntico”? Quais etapas e processamentos? Qual(is) modelo(s) de linguagem serão empregados? Como?** | **Fluxo do Processo:**<br>1. **Coleta de Dados:** Execução de scrapers (InfoMoney e Exame) para capturar notícias recentes e armazená-las no banco de dados.<br>2. **Recuperação e Consolidação:** O `AppController` busca todos os fragmentos de texto relevantes no banco e os unifica em um único contexto.<br>3. **Arquitetura Multi-Agente:** O `MultiAgentAnalysisService` orquestra três chamadas ao LLM:<br>   - *Agente Otimista:* Analisa o texto buscando oportunidades, vantagens competitivas e crescimento.<br>   - *Agente Pessimista:* Analisa o texto buscando riscos, endividamento e ameaças operacionais.<br>   - *Agente Neutro (Juiz):* Recebe as análises dos dois agentes anteriores + o texto bruto das notícias. Ele julga se houve uma "quebra de tese" estrutural (ex: diluição, troca de gestão, fraude) com base em critérios estritos definidos no prompt.<br><br>**Modelo de Linguagem:** Utiliza o **Google Gemini** (modelo `gemini-2.0-flash-lite`) configurado com temperatura 0.7 para equilibrar criatividade e precisão. |
-| **Quais as saídas esperadas e metodologias para avaliação dos resultados?** | **Saídas Esperadas:** Um relatório consolidado em Markdown contendo:<br>1. Análise detalhada da Perspectiva Otimista.<br>2. Análise detalhada da Perspectiva Pessimista.<br>3. Análise Fundamentalista (Veredito do Juiz: SIM/NÃO para mudanças estruturais).<br>4. Resumo fatual dos principais eventos.<br><br>**Metodologia de Avaliação:** A avaliação é qualitativa, em certos cenários específicos onde houveram mudanças fundamentalistas e outros que não (em nossa avaliação pessoal, ex: WEGE3 em 2025 e CSAN3 em 2025), nós verificamos a capacidade do "Agente Juiz" de distinguir ruído de mercado (ex: queda de 5% na ação) de eventos fundamentais (ex: aumento de capital, fusões, troca de CEO), conforme as instruções implementadas nos prompts.                                                                                                                                                                                                                                                                                             |
+This document describes the architecture and functionality of an advanced Natural Language Processing (NLP) solution developed for automated fundamental analysis of companies listed on B3 (Brazilian stock exchange).
 
-Obs: Verificar diagrama também (feito em https://mermaid.live/) 
+## System Architecture
+
+```mermaid
+graph TD
+    Input["📊 User Input<br/>- Ticker<br/>- Time Period<br/>- Language"]
+    Scraper["🕷️ Web Scrapers<br/>InfoMoney & Exame"]
+    DB["💾 MySQL Database<br/>investment_news"]
+    Retrieval["🔍 Data Retrieval<br/>& Consolidation"]
+    Bullish["📈 Bullish Agent<br/>Opportunities & Growth"]
+    Bearish["📉 Bearish Agent<br/>Risks & Threats"]
+    Judge["⚖️ Judge Agent<br/>Structural Changes"]
+    Report["📋 Consolidated Report<br/>- Bullish Analysis<br/>- Bearish Analysis<br/>- Verdict<br/>- Key Events"]
+    
+    Input --> Scraper
+    Scraper --> DB
+    Input --> Retrieval
+    DB --> Retrieval
+    Retrieval --> Bullish
+    Retrieval --> Bearish
+    Bullish --> Judge
+    Bearish --> Judge
+    Retrieval --> Judge
+    Judge --> Report
+```
+
+## Key Features
+
+| Criterion | Description |
+| :--- | :--- |
+| **System Objective** | Automate **fundamental analysis** of B3-listed companies, focusing on long-term "Buy & Hold" strategy. The system identifies **investment thesis breaks** and summarizes key events, providing three distinct perspectives to support decision-making: **Bullish**, **Bearish**, and **Neutral** (Judge). |
+| **System Inputs & Database** | **Inputs:** Stock ticker (e.g., `PETR4`), time horizon (e.g., `12` months), and output language (Portuguese/English).<br><br>**Database:** MySQL database (`investment_news`).<br><br>**Data Used:** The system retrieves and consolidates **raw text** stored in the `processamento_texto` table, cross-referenced with the `noticias` table to filter relevant articles by `ticker_id` and `data_publicacao` within the specified time window. |
+| **Agentic Flow & Models** | **Process Flow:**<br>1. **Data Collection:** Web scrapers (InfoMoney and Exame) capture recent news and store it in the database.<br>2. **Retrieval & Consolidation:** `AppController` retrieves all relevant text fragments from the database and unifies them into a single context.<br>3. **Multi-Agent Architecture:** `MultiAgentAnalysisService` orchestrates three LLM calls:<br>   - *Bullish Agent:* Analyzes text for opportunities, competitive advantages, and growth potential.<br>   - *Bearish Agent:* Analyzes text for risks, debt issues, and operational threats.<br>   - *Judge Agent (Neutral):* Receives analyses from both agents plus raw news text. It evaluates whether a "structural thesis break" occurred (e.g., dilution, management change, fraud) based on strict criteria defined in the prompt.<br><br>**Language Model:** Uses **Google Gemini** (`gemini-2.0-flash-lite`) configured with temperature 0.7 to balance creativity and precision. |
+| **Expected Outputs & Evaluation** | **Expected Outputs:** A consolidated Markdown report containing:<br>1. Detailed Bullish Perspective analysis.<br>2. Detailed Bearish Perspective analysis.<br>3. Fundamental Analysis verdict (Judge's Decision: YES/NO for structural changes).<br>4. Factual summary of major events.<br><br>**Evaluation Methodology:** Qualitative assessment conducted on specific scenarios where fundamental changes did (e.g., WEGE3 in 2025) and did not occur (e.g., CSAN3 in 2025). We verify the "Judge Agent's" ability to distinguish market noise (e.g., 5% stock decline) from fundamental events (e.g., capital increase, mergers, CEO changes) as implemented in the prompts. |
+
+## Technical Stack
+
+- **Language:** Python
+- **Database:** MySQL
+- **LLM Provider:** Google Gemini
+- **Web Scraping:** BeautifulSoup
+- **NLP Agents:** Multi-agent architecture with specialized prompts
+
+## Getting Started
+
+Refer to [DATABASE_SETUP.md](DATABASE_SETUP.md) for database configuration and [requirements.txt](requirements.txt) for dependencies.
